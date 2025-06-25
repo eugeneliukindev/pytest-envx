@@ -58,7 +58,7 @@ jobs:
         with:
           files: ${{ env.COVERAGE_XML }}
           fail_ci_if_error: true
-          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
 
   meta-check:
     runs-on: ubuntu-latest
