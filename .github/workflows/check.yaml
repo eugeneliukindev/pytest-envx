@@ -51,6 +51,8 @@ jobs:
         if: startsWith(matrix.env, '3.')
         uses: codecov/codecov-action@v4
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: eugeneliukindev/pytest-envx
           files: ${{ env.COVERAGE_XML }}
           fail_ci_if_error: true
           verbose: true
