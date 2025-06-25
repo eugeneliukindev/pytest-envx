@@ -1,11 +1,6 @@
 name: Check
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - "master"
-    tags-ignore:
-      - "**"
   pull_request:
   schedule:
     - cron: "0 8 * * *"
