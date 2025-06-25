@@ -4,7 +4,7 @@
 
 [![PyPI version](https://badge.fury.io/py/pytest-envx.svg)](https://badge.fury.io/py/pytest-envx)
 [![Python versions](https://img.shields.io/pypi/pyversions/pytest-envx.svg)](https://pypi.org/project/pytest-envx/)
-[![codecov](https://codecov.io/gh/eugeneliukindev/pytest-envx/graph/badge.svg?token=4YSKOOEGEX)](https://codecov.io/gh/eugeneliukindev/pytest-envx)
+[![codecov](https://codecov.io/gh/eugeneliukindev/pytest-envx/graph/badge.svg?token=JRCQR1PFZ0)](https://codecov.io/gh/eugeneliukindev/pytest-envx)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 <details>
