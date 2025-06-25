@@ -48,7 +48,6 @@ jobs:
           PYTEST_ADDOPTS: "-vv --durations=20"
 
       - name: Upload coverage to Codecov
-        if: startsWith(matrix.env, '3.')
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
