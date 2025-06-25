@@ -1,0 +1,15 @@
+# reference: https://docs.codecov.io/docs/codecovyml-reference
+---
+
+codecov:
+  token: 67244ca9-c4a3-4679-ba08-d5a224679893 #repo token
+  strict_yaml_branch: "master"
+  require_ci_to_pass: true
+
+coverage:
+  status:
+    patch:
+      default:
+        target: 100%  # require patches to be 100%
+    project: false
+comment: false

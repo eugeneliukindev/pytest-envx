@@ -206,7 +206,7 @@ commands = [
     ] }
     ],
     [
-        "diff-cover", "--compare-branch", "{env:DIFF_AGAINST:master}", "{env:COVERAGE_XML}"
+        "diff-cover", "--compare-branch", "{env:DIFF_AGAINST:origin/master}", "{env:COVERAGE_XML}"
     ]
 ]
 
