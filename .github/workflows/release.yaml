@@ -1,0 +1,65 @@
+name: Release to PyPI
+on:
+  push:
+    tags: [ "*" ]
+
+env:
+  dists-artifact-name: python-package-distributions
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check tag matches version
+        run: |
+          uv run python -c "
+          from pytest_envx.__version__ import __version__
+          tag = '${{ github.ref_name }}'
+          clean_tag = tag[1:] if tag.startswith('v') else tag
+          if clean_tag != __version__:
+              print(f'Error: Tag {tag} does not match version {__version__}')
+              exit(1)
+          print(f'Success: Tag {tag} matches version {__version__}')
+          "
+
+      - name: Build package
+        run: uv build --python 3.13 --python-preference only-managed --sdist --wheel . --out-dir dist
+
+      - name: Store the distribution packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.dists-artifact-name }}
+          path: dist/*
+
+  release:
+    needs:
+      - build
+    runs-on: ubuntu-latest
+    environment:
+      name: release
+      url: https://pypi.org/project/pytest-envx/${{ github.ref_name }}
+    permissions:
+      id-token: write
+    steps:
+      - name: Download all the dists
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.dists-artifact-name }}
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@v1.12.4
+        with:
+          attestations: true

@@ -1,0 +1,86 @@
+name: Check
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "master"
+    tags-ignore:
+      - "**"
+  pull_request:
+  schedule:
+    - cron: "0 8 * * *"
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      COVERAGE_XML: .tox/coverage.xml
+    strategy:
+      fail-fast: false
+      matrix:
+        python_versions:
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
+          - "3.13"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: false
+          cache-dependency-glob: "pyproject.toml"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Python interpreter
+        run: uv python install --python-preference only-managed ${{ matrix.python_versions }}
+
+      - name: Install tox
+        run: uv tool install --python-preference only-managed --python 3.13 tox --with tox-uv
+
+      - name: Run tox
+        run: tox run -vv --skip-missing-interpreters false -e ${{ matrix.python_versions }}
+        env:
+          PYTEST_ADDOPTS: "-vv --durations=20"
+
+      - name: Upload coverage to Codecov
+        if: startsWith(matrix.env, '3.')
+        uses: codecov/codecov-action@v4
+        with:
+          files: ${{ env.COVERAGE_XML }}
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  meta-check:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        check: [ "lint", "type_hints", "pkg-meta" ]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install tox
+        run: uv tool install --python-preference only-managed --python 3.13 tox --with tox-uv
+
+      - name: Run lint checks
+        run: tox run --skip-pkg-install -e ${{ matrix.check }}

@@ -1,0 +1,55 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-merge-conflict
+        name: "Check: no merge conflict strings"
+      - id: no-commit-to-branch
+        name: "Check: no commit to main"
+        args: [--branch, main, --branch, master]
+        stages: [commit-msg]
+      - id: check-ast
+        name: "Check: parse .py files"
+        language_version: python3.12
+      - id: check-json
+        name: "Check: parse .json files"
+      - id: check-toml
+        name: "Check: parse .toml files"
+      - id: check-yaml
+        name: "Check: parse .yaml files"
+      - id: check-case-conflict
+        name: "Check: no case conflicting file names"
+      - id: trailing-whitespace
+        name: "Lint: remove trailing whitespaces"
+      - id: end-of-file-fixer
+        name: "Lint: files end with only newline"
+      - id: mixed-line-ending
+        name: "Lint: consistent file ending"
+      - id: detect-private-key
+        name: "Check: no private keys are committed"
+      - id: check-added-large-files
+        name: "Check: no large files added"
+        args: [--maxkb=500]
+      - id: check-illegal-windows-names
+        name: "Check: illegal Windows filenames"
+      - id: check-docstring-first
+        name: "Check: docstrings before code"
+      - id: debug-statements
+        name: "Check: no debug statements"
+      - id: name-tests-test
+        name: "Check: test files naming"
+      - id: check-vcs-permalinks
+        name: "Check: VCS permalinks"
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.12.0
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pdm-project/pdm
+    rev: 2.21.0
+    hooks:
+      - id: pdm-lock-check
+        name: "Check: pdm.lock consistency"
