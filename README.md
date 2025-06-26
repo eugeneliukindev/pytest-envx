@@ -105,7 +105,7 @@ NAME=BOB
     <td>
       <pre lang="toml">
 [tool.pytest_envx]
-envx_metadata = { paths_to_load = [".env-template", ".env"], override_load = true}
+envx_metadata = { paths_to_load = [".env-template", ".env"], override_load = true }
 GREETING = "Hello"
       </pre>
     </td>
