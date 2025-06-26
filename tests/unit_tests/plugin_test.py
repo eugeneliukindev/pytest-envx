@@ -294,7 +294,7 @@ def test_ini_setup_invalid_env_line(pytester: Pytester) -> None:
         """
     )
     with pytest.raises(ValueError, match=r"Invalid env line format \(missing '='\): 'INVALID_ENV_LINE'"):
-        pytester.parseconfigure(ini_path)
+        pytester.parseconfig(ini_path)
 
 
 def test_ini_setup_invalid_metadata(pytester: Pytester) -> None:
