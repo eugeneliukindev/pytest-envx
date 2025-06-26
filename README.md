@@ -58,7 +58,7 @@ HELLO = "WORLD"</code></pre>
     <td>
       <pre lang="ini"><code>[pytest]
 env =
-    HELLO="BOB"</code></pre>
+    HELLO="WORLD"</code></pre>
     </td>
   </tr>
 </table>
@@ -106,7 +106,7 @@ NAME=BOB
       <pre lang="toml">
 [tool.pytest_envx]
 envx_metadata = { paths_to_load = [".env-template", ".env"], override_load = true}
-GREETING="Hello"
+GREETING = "Hello"
       </pre>
     </td>
     <td>
@@ -164,16 +164,13 @@ LEVEL=DEV
     <td>
       <pre lang="toml">
 [tool.pytest_envx]
-envx_metadata = {
-    paths_to_load = [".env.default", ".env.dev"],
-    override_load = false
-    }
+envx_metadata = { paths_to_load = [".env.default", ".env.dev"], override_load = false }
       </pre>
     </td>
     <td>
       <pre lang="ini">
 [pytest]
-envx_metadata = {"paths_to_load ": [".env.default", ".env.dev"], "override_load": False}
+envx_metadata = {"paths_to_load": [".env.default", ".env.dev"], "override_load": False}
       </pre>
     </td>
   </tr>
@@ -216,11 +213,9 @@ PORT=5432
     <td>
       <pre lang="toml">
 [tool.pytest_envx]
-envx_metadata = {
-    paths_to_interpolate = [".env"]
-    }
+envx_metadata = { paths_to_interpolate = [".env"] }
 DB_URL_WITH_INTERPOLATION = "postgresql://{%USER%}:{%PASS%}@{%HOST%}:{%PORT%}/app"
-WITHOUT_INTERPOLATION = { value = "{%USER%}", interpolation = false }
+WITHOUT_INTERPOLATION = { value = "{%USER%}", interpolate = false }
 NOT_FOUND = "{%NOT_FOUND%}"
       </pre>
     </td>
@@ -230,7 +225,7 @@ NOT_FOUND = "{%NOT_FOUND%}"
 envx_metadata = {"paths_to_interpolate": [".env"]}
 env =
     DB_URL_WITH_INTERPOLATION="postgresql://{%USER%}:{%PASS%}@{%HOST%}:{%PORT%}/app"
-    WITHOUT_INTERPOLATION={"value": "{%USER%}", "interpolation": False}
+    WITHOUT_INTERPOLATION={"value": "{%USER%}", "interpolate": False}
     NOT_FOUND = "{%NOT_FOUND%}"
       </pre>
     </td>
