@@ -15,7 +15,7 @@ from dotenv import dotenv_values
 if sys.version_info >= (3, 11):  # pragma: no cover
     import tomllib
 else:  # pragma: no cover
-    import tomli as tomllib  # pragma: no cover
+    import tomli as tomllib
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -35,19 +35,19 @@ class Entry:
     interpolate: bool
 
 
-class BasePytestEnvManager(ABC):  # pragma: no cover
+class BasePytestEnvManager(ABC):
     """Base class for pytest configuration managers tatal."""
 
-    _TEMPLATE_PATTERN: ClassVar[re.Pattern[str]] = re.compile(r"\{%(\w+)%}")  # pragma: no cover
+    _TEMPLATE_PATTERN: ClassVar[re.Pattern[str]] = re.compile(r"\{%(\w+)%}")
 
-    def __init__(self, pytest_config: pytest.Config) -> None:  # pragma: no cover
+    def __init__(self, pytest_config: pytest.Config) -> None:
         self._pytest_config: pytest.Config = pytest_config
 
-    def _extract_placeholders(self, value: str) -> set[str]:  # pragma: no cover
+    def _extract_placeholders(self, value: str) -> set[str]:
         """Extract template variables in format {%VAR_NAME%} from a string."""
         return set(self._TEMPLATE_PATTERN.findall(value))
 
-    @staticmethod  # pragma: no cover
+    @staticmethod
     def _parse_raw_entry(raw_entry: Any) -> Entry:
         """Convert a raw config entry (string or dict) into an EnvEntry."""
         if isinstance(raw_entry, str):
@@ -62,7 +62,7 @@ class BasePytestEnvManager(ABC):  # pragma: no cover
             return Entry(value=value, interpolate=interpolate)
         raise TypeError(f"Entry must be a string or dict, got {type(raw_entry).__name__}")
 
-    @staticmethod  # pragma: no cover
+    @staticmethod
     def _parse_metadata(metadata_from_config: Any) -> Metadata:
         if not metadata_from_config:
             return Metadata()
@@ -96,17 +96,17 @@ class BasePytestEnvManager(ABC):  # pragma: no cover
             override_interpolate=override_interpolate,
         )
 
-    def _interpolate(self, value: str, interpolate_vars: dict[str, str | None]) -> str:  # pragma: no cover
+    def _interpolate(self, value: str, interpolate_vars: dict[str, str | None]) -> str:
         """Replace placeholders (e.g., {%VAR_NAME%}) with values from interpolate_vars."""
 
-        def replace_match(match: re.Match[str]) -> str:  # pragma: no cover
+        def replace_match(match: re.Match[str]) -> str:
             var_name = match.group(1)
             # Replace None with empty string to avoid type errors
             return interpolate_vars.get(var_name, match.group(0)) or ""
 
         return self._TEMPLATE_PATTERN.sub(replace_match, value)
 
-    @staticmethod  # pragma: no cover
+    @staticmethod
     def _load_dotenv(paths: Sequence[str | os.PathLike[str]], override: bool) -> dict[str, str | None]:
         """Load environment variables from .env files."""
         env_vars: dict[str, str | None] = {}
@@ -121,14 +121,12 @@ class BasePytestEnvManager(ABC):  # pragma: no cover
                     env_vars = {**file_vars, **env_vars}
         return env_vars
 
-    def _is_valid_inifile(
-        self, filename: Literal["pyproject.toml", "pytest.ini", "tox.ini"]
-    ) -> bool:  # pragma: no cover
+    def _is_valid_inifile(self, filename: Literal["pyproject.toml", "pytest.ini", "tox.ini"]) -> bool:
         """Check if the pytest config's inifile exists and matches the given filename."""
         inipath = self._pytest_config.inipath
         return inipath is not None and inipath.exists() and inipath.name == filename
 
-    def _set_env_var(self, key: str, entry: Entry, interpolate_vars: dict[str, str | None]) -> None:  # pragma: no cover
+    def _set_env_var(self, key: str, entry: Entry, interpolate_vars: dict[str, str | None]) -> None:
         """Set an environment variable based on the entry and interpolation vars."""
         value: str = (
             self._interpolate(value=entry.value, interpolate_vars=interpolate_vars)
@@ -137,7 +135,7 @@ class BasePytestEnvManager(ABC):  # pragma: no cover
         )
         os.environ[key] = value
 
-    def _apply_env_vars(self, raw_config_vars: dict[str, Any], metadata: Metadata) -> None:  # pragma: no cover
+    def _apply_env_vars(self, raw_config_vars: dict[str, Any], metadata: Metadata) -> None:
         loaded_vars = (
             self._load_dotenv(metadata.paths_to_load, metadata.override_load) if metadata.paths_to_load else {}
         )
@@ -159,25 +157,25 @@ class BasePytestEnvManager(ABC):  # pragma: no cover
             except (TypeError, ValueError) as e:
                 raise type(e)(f"Invalid entry for {key}: {e}") from e
 
-    @abstractmethod  # pragma: no cover
+    @abstractmethod
     def setup(self) -> bool:
         """Load and apply environment configuration."""
         raise NotImplementedError()
 
 
-class TomlEnvManager(BasePytestEnvManager):  # pragma: no cover
+class TomlEnvManager(BasePytestEnvManager):
     """Manages environment variables from pyproject.toml."""
 
-    def __init__(self, pytest_config: pytest.Config) -> None:  # pragma: no cover
+    def __init__(self, pytest_config: pytest.Config) -> None:
         super().__init__(pytest_config=pytest_config)
 
-    @staticmethod  # pragma: no cover
+    @staticmethod
     def _load_toml_config(path: Path) -> dict[str, Any]:
         """Load pytest_envx section from a TOML file."""
         config = tomllib.loads(path.read_text())
         return cast(dict[str, Any], config.get("tool", {}).get("pytest_envx", {}))
 
-    def setup(self) -> bool:  # pragma: no cover
+    def setup(self) -> bool:
         """Configure environment from pyproject.toml."""
         if not self._is_valid_inifile("pyproject.toml"):
             return False
@@ -193,13 +191,13 @@ class TomlEnvManager(BasePytestEnvManager):  # pragma: no cover
         return True
 
 
-class IniEnvManager(BasePytestEnvManager):  # pragma: no cover
+class IniEnvManager(BasePytestEnvManager):
     """Manages environment variables from pytest.ini."""
 
-    def __init__(self, pytest_config: pytest.Config) -> None:  # pragma: no cover
+    def __init__(self, pytest_config: pytest.Config) -> None:
         super().__init__(pytest_config=pytest_config)
 
-    def setup(self) -> bool:  # pragma: no cover
+    def setup(self) -> bool:
         """Configure environment from pytest.ini or tox.ini."""
         if not (self._is_valid_inifile("pytest.ini") or self._is_valid_inifile("tox.ini")):
             return False
@@ -225,7 +223,7 @@ class IniEnvManager(BasePytestEnvManager):  # pragma: no cover
         return True
 
 
-def pytest_addoption(parser: pytest.Parser) -> None:  # pragma: no cover
+def pytest_addoption(parser: pytest.Parser) -> None:
     """Add configuration options for the plugin."""
     parser.addini(
         name="env",
@@ -241,7 +239,7 @@ def pytest_addoption(parser: pytest.Parser) -> None:  # pragma: no cover
     )
 
 
-@pytest.hookimpl(tryfirst=True)  # pragma: no cover
+@pytest.hookimpl(tryfirst=True)
 def pytest_load_initial_conftests(early_config: pytest.Config) -> None:
     TomlEnvManager(pytest_config=early_config).setup()
     IniEnvManager(pytest_config=early_config).setup()

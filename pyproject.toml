@@ -79,7 +79,7 @@ Changelog = "https://github.com/eugeneliukindev/pytest-envx/releases"
 # ==============================
 
 [project.entry-points.pytest11]
-envfile = "pytest_envx.plugin"
+pytest_envx = "pytest_envx.plugin"
 
 [tool.pytest]
 testpaths = ["tests"]
@@ -156,10 +156,6 @@ omit = [
     "src/pytest_envx/__version__.py"
 ]
 show_missing = true
-exclude_also = [
-    "@dataclass",
-    "import"
-]
 
 # ==============================
 # Tox
@@ -192,6 +188,7 @@ pass_env = ["PYTEST_*", "COVERAGE_*"]
 commands = [
     [
         "pytest", { replace = "posargs", extend = true, default = [
+        "-p", "no:pytest_envx",
         "-v",
         "-n", { replace = "env", name = "PYTEST_XDIST_AUTO_NUM_WORKERS", default = "auto" },
         "--junitxml", "{toxworkdir}{/}junit.{env_name}.xml",
