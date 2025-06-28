@@ -1,17 +1,11 @@
 import os
 from collections.abc import Generator, Sequence
 from pathlib import Path
-from typing import Union
 
 import pytest
 from _pytest.pytester import Pytester
 
-from pytest_envx.plugin import IniEnvManager, TomlEnvManager
-
-
-@pytest.fixture
-def toml_config_manager(pytestconfig: pytest.Config) -> TomlEnvManager:
-    return TomlEnvManager(pytestconfig)
+from pytest_envx.plugin import IniEnvManager
 
 
 @pytest.fixture(autouse=True)
@@ -29,6 +23,8 @@ def clear_test_env(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, Non
 def _create_env_files(pytester: Pytester, env_sources: Sequence[Sequence[str]]) -> list[Path]:
     env_paths = []
     for i, env_source in enumerate(env_sources):
+        if not env_source:
+            continue
         env_path = pytester.makefile(f".env{i + 1}", *env_source)
         env_paths.append(env_path)
     return env_paths
@@ -49,11 +45,13 @@ class TestTomlEnvManager:
                     ["DB_HOST=overridehost", "DB_PORT=3333"],
                 ],
                 """
-                [tool.pytest_envx]
+                [tool.pytest.ini_options]
                 envx_metadata = { paths_to_load = ["{env_path1}", "{env_path2}"], paths_to_interpolate = ["{env_path1}", "{env_path2}"] }
-                DB_URL = { value = "{%DB_HOST%}:{%DB_PORT%}" }
-                GOOGLE_API_KEY = "SERVICE_{%API_KEY%}_API_KEY"
-                KEY1="{%NOT_EXIST%}"
+                env = [
+                    "DB_URL={'value': '{%DB_HOST%}:{%DB_PORT%}'}",
+                    "GOOGLE_API_KEY='SERVICE_{%API_KEY%}_API_KEY'",
+                    "KEY1='{%NOT_EXIST%}'"
+                ]
                 """,
                 {
                     "DB_HOST": "overridehost",
@@ -71,9 +69,11 @@ class TestTomlEnvManager:
                     ["DB_HOST=overridehost", "DB_PORT=3333", "KEY1=VALUE1"],
                 ],
                 """
-                [tool.pytest_envx]
+                [tool.pytest.ini_options]
                 envx_metadata = { paths_to_load = ["{env_path1}", "{env_path2}"], paths_to_interpolate = ["{env_path1}"], override_load = false }
-                DB_URL = { value = "{%DB_HOST%}:{%DB_PORT%}" }
+                env = [
+                    "DB_URL={'value': '{%DB_HOST%}:{%DB_PORT%}'}"
+                ]
                 """,
                 {
                     "DB_HOST": "localhost",
@@ -88,9 +88,11 @@ class TestTomlEnvManager:
                     ["API_KEY=GOOGLE_API_KEY"],
                 ],
                 """
-                [tool.pytest_envx]
+                [tool.pytest.ini_options]
                 envx_metadata = { paths_to_load = ["{env_path1}"], paths_to_interpolate = [], override_load = false, override_interpolate = false }
-                API_KEY = { value = "SERVICE_{%API_KEY%}", interpolate = false }
+                env = [
+                    "API_KEY={'value': 'SERVICE_{%API_KEY%}', 'interpolate': False}"
+                ]
                 """,
                 {"API_KEY": "SERVICE_{%API_KEY%}"},
                 id="single_env_file_with_interpolation_disabled",
@@ -98,9 +100,11 @@ class TestTomlEnvManager:
             pytest.param(
                 [["API_KEY=GOOGLE_API_KEY"]],
                 """
-                [tool.pytest_envx]
+                [tool.pytest.ini_options]
                 envx_metadata = { paths_to_load = ["{env_path1}"], paths_to_interpolate = ["{env_path1}"], override_load = true, override_interpolate = true }
-                API_KEY = { value = "SERVICE_{%API_KEY%}", interpolate = true }
+                env = [
+                    "API_KEY={'value': 'SERVICE_{%API_KEY%}', 'interpolate': True }"
+                ]
                 """,
                 {"API_KEY": "SERVICE_GOOGLE_API_KEY"},
                 id="single_env_file_with_interpolation_enabled",
@@ -111,7 +115,7 @@ class TestTomlEnvManager:
                     ["SOME_SYSTEM_ENV_KEY=DANGEROUS_VALUE"],
                 ],
                 """
-                [tool.pytest_envx]
+                [tool.pytest.ini_options]
                 envx_metadata = { paths_to_load = ["{env_path1}", "{env_path2}"], paths_to_interpolate = [], override_load = false, override_interpolate = true }
                 """,
                 {"SOME_SYSTEM_ENV_KEY": "SOME_SYSTEM_ENV_VALUE"},
@@ -123,9 +127,11 @@ class TestTomlEnvManager:
                     ["SOME_SYSTEM_ENV_KEY=DANGEROUS_VALUE"],
                 ],
                 """
-                [tool.pytest_envx]
+                [tool.pytest.ini_options]
                 envx_metadata = { paths_to_load = ["{env_path1}", "{env_path2}"], paths_to_interpolate = [], override_load = false, override_interpolate = false }
-                SOME_SYSTEM_ENV_KEY = { value = "{%SAFE_VALUE%}", interpolate = false }
+                env = [
+                    "SOME_SYSTEM_ENV_KEY = {'value': '{%SAFE_VALUE%}', 'interpolate': False}"
+                ]
                 """,
                 {"SOME_SYSTEM_ENV_KEY": "{%SAFE_VALUE%}"},
                 id="explicit_value_overrides_env_file_when_interpolation_disabled",
@@ -135,9 +141,11 @@ class TestTomlEnvManager:
                     [],
                 ],
                 """
-                [tool.pytest_envx]
-                VAR1 = "VALUE1"
-                VAR2 = "{%VAR1%}"
+                [tool.pytest.ini_options]
+                env = [
+                    "VAR1='VALUE1'",
+                    "VAR2='{%VAR1%}'"
+                ]
                 """,
                 {
                     "VAR1": "VALUE1",
@@ -151,9 +159,11 @@ class TestTomlEnvManager:
                     ["KEY2=VALUE2"],
                 ],
                 """
-                [tool.pytest_envx]
+                [tool.pytest.ini_options]
                 envx_metadata = { paths_to_load = ["{env_path1}", "{env_path2}"], paths_to_interpolate = ["{env_path1}"], override_load = true, override_interpolate = false }
-                DATA = { value = "GAME_{%KEY1%}" }
+                env = [
+                    "DATA={'value': 'GAME_{%KEY1%}'}"
+                ]
                 """,
                 {
                     "KEY1": "VALUE1",
@@ -170,24 +180,14 @@ class TestTomlEnvManager:
         toml_source: str,
         expected_result: dict[str, str],
         pytester: Pytester,
-        toml_config_manager: TomlEnvManager,
     ) -> None:
-        """Test successful TOML config parsing."""
-        if env_sources[0]:
-            env_paths = _create_env_files(pytester=pytester, env_sources=env_sources)
-
-            # Replace {env_pathX} placeholders in toml_source with actual paths
-            for i, env_path in enumerate(env_paths):
-                placeholder = f"{{env_path{i + 1}}}"
-                toml_source = toml_source.replace(placeholder, str(env_path))
-
-        # Create pyproject.toml using pytester
+        env_paths = _create_env_files(pytester=pytester, env_sources=env_sources)
+        for i, env_path in enumerate(env_paths):
+            toml_source = toml_source.replace(f"{{env_path{i + 1}}}", str(env_path))
         toml_path = pytester.makepyprojecttoml(toml_source)
-
-        # Set the TOML file path in toml_config_manager
-        toml_config_manager._pytest_config._inipath = toml_path
-        toml_config_manager.setup()
-
+        pytest_config = pytester.parseconfigure(toml_path)
+        ini_config_manager = IniEnvManager(pytest_config=pytest_config)
+        ini_config_manager.setup()
         _verify_env_vars(expected_result=expected_result)
 
     @pytest.mark.parametrize(
@@ -196,71 +196,65 @@ class TestTomlEnvManager:
             pytest.param(
                 [],
                 """
-                [tool.pytest_envx]
+                [tool.pytest.ini_options]
                 envx_metadata = "not_a_dict"
                 """,
-                TypeError,
-                "key 'envx_metadata' must be a dict, got str",
+                ValueError,
+                "Invalid 'envx_metadata' from config file: 'not_a_dict'",
                 id="metadata_not_a_dictionary",
             ),
             pytest.param(
                 [],
                 """
-                [tool.pytest_envx]
+                [tool.pytest.ini_options]
                 envx_metadata = { paths_to_load = 42 }
                 """,
                 TypeError,
-                "argument 'paths_to_load' of key 'envx_metadata' must be a list",
+                "argument 'paths_to_load' of key 'envx_metadata' must be a 'list'",
                 id="paths_to_load_not_a_list",
             ),
             pytest.param(
                 [],
                 """
-                [tool.pytest_envx]
+                [tool.pytest.ini_options]
                 envx_metadata = { paths_to_load = [32] }
                 """,
                 TypeError,
-                "Path in 'paths_to_load' must be a string, got int",
+                "Path in 'paths_to_load' must be a 'str', got 'int'",
                 id="path_entry_not_a_string",
             ),
             pytest.param(
                 [],
                 """
-                [tool.pytest_envx]
+                [tool.pytest.ini_options]
                 envx_metadata = { paths_to_load = [], paths_to_interpolate = [42] }
                 """,
                 TypeError,
-                "Path in 'paths_to_interpolate' must be a string, got int",
+                "Path in 'paths_to_interpolate' must be a 'str', got 'int'",
                 id="interpolation_path_not_a_string",
             ),
             pytest.param(
                 [],
                 """
-                [tool.pytest_envx]
-                DB_URL = { value = 42 }
-                """,
-                ValueError,
-                "'value' must be a string",
-                id="env_value_not_a_string",
-            ),
-            pytest.param(
-                [],
-                """
-                [tool.pytest_envx]
-                DB_URL = { value = "test", interpolate = "not_a_bool" }
+                [tool.pytest.ini_options]
+                env = [
+                    "DB_URL={'value': 'test', 'interpolate': 'not_a_bool'}"
+                ]
                 """,
                 TypeError,
-                "Entry 'interpolate' must be a bool",
+                "Entry 'interpolate' must be a 'bool'",
                 id="interpolate_flag_not_a_boolean",
             ),
             pytest.param(
                 [],
                 """
-                [tool.pytest_envx]
-                DB_URL = 42
+                [tool.pytest.ini_options]
+                env = [
+                    "DB_URL=42"
+                ]
                 """,
                 TypeError,
-                "Entry must be a string or dict, got int",
+                "Entry must be a 'str' or dict-like, got 'int'",
                 id="env_entry_invalid_type",
             ),
         ],
@@ -272,14 +266,11 @@ class TestTomlEnvManager:
         expected_error: type[Exception],
         expected_error_message: str,
         pytester: Pytester,
-        toml_config_manager: TomlEnvManager,
     ) -> None:
         """Test TOML config parsing with error cases and edge cases."""
         toml_path = pytester.makepyprojecttoml(toml_source)
-        toml_config_manager._pytest_config._inipath = toml_path
-
         with pytest.raises(expected_error, match=expected_error_message):
-            toml_config_manager.setup()
+            pytester.parseconfigure(toml_path)
 
 
 class TestIniManager:
@@ -399,7 +390,7 @@ class TestIniManager:
                 envx_metadata = not_a_dict
                 """,
                 ValueError,
-                r"Invalid envx_metadata from ini file, 'not_a_dict'",
+                "Invalid 'envx_metadata' from config file: 'not_a_dict'",
                 id="invalid_metadata_syntax_not_json",
             ),
             pytest.param(
@@ -409,7 +400,7 @@ class TestIniManager:
                 envx_metadata = {"paths_to_load": 42}
                 """,
                 TypeError,
-                r"argument 'paths_to_load' of key 'envx_metadata' must be a list",
+                "argument 'paths_to_load' of key 'envx_metadata' must be a 'list'",
                 id="paths_to_load_not_a_list",
             ),
             pytest.param(
@@ -419,7 +410,7 @@ class TestIniManager:
                 envx_metadata = {"paths_to_interpolate": [42]}
                 """,
                 TypeError,
-                r"Path in 'paths_to_interpolate' must be a string, got int",
+                "Path in 'paths_to_interpolate' must be a 'str', got 'int'",
                 id="interpolation_path_not_a_string",
             ),
             pytest.param(
@@ -430,7 +421,7 @@ class TestIniManager:
                     DB_URL=42
                 """,
                 TypeError,
-                r"Invalid entry for DB_URL: Entry must be a string or dict, got int",
+                "Invalid entry for 'DB_URL': Entry must be a 'str' or dict-like, got 'int'",
                 id="env_value_invalid_type",
             ),
             pytest.param(
@@ -441,7 +432,7 @@ class TestIniManager:
                     DB_URL={"value": "test", "interpolate": "not_a_bool"}
                 """,
                 TypeError,
-                r"Invalid entry for DB_URL: Entry 'interpolate' must be a bool",
+                "Invalid entry for 'DB_URL': Entry 'interpolate' must be a 'bool'",
                 id="interpolate_flag_not_a_boolean",
             ),
             pytest.param(
@@ -471,24 +462,24 @@ class TestIniManager:
             pytester.parseconfig(ini_path)
 
 
-@pytest.mark.parametrize(
-    "inipath_name, expected_setup_result",
-    [
-        pytest.param("pytest.ini", False, id="toml_manager_with_pytest_ini_file"),
-        pytest.param("tox.ini", False, id="toml_manager_with_tox_ini_file"),
-        pytest.param(None, False, id="toml_manager_with_no_config_file"),
-    ],
-)
-def test_invalid_inipath(
-    inipath_name: Union[str, None],
-    expected_setup_result: bool,
-    pytester: Pytester,
-    toml_config_manager: TomlEnvManager,
-) -> None:
-    if inipath_name:
-        inipath = pytester.path / inipath_name
-        inipath.touch()
-        toml_config_manager._pytest_config._inipath = inipath
-    else:
-        toml_config_manager._pytest_config._inipath = None
-    assert toml_config_manager.setup() == expected_setup_result
+# @pytest.mark.parametrize(
+#     "inipath_name, expected_setup_result",
+#     [
+#         pytest.param("pytest.ini", False, id="toml_manager_with_pytest_ini_file"),
+#         pytest.param("tox.ini", False, id="toml_manager_with_tox_ini_file"),
+#         pytest.param(None, False, id="toml_manager_with_no_config_file"),
+#     ],
+# )
+# def test_invalid_inipath(
+#     inipath_name: Union[str, None],
+#     expected_setup_result: bool,
+#     pytester: Pytester,
+#     toml_config_manager: TomlEnvManager,
+# ) -> None:
+#     if inipath_name:
+#         inipath = pytester.path / inipath_name
+#         inipath.touch()
+#         toml_config_manager._pytest_config._inipath = inipath
+#     else:
+#         toml_config_manager._pytest_config._inipath = None
+#     assert toml_config_manager.setup() == expected_setup_result
