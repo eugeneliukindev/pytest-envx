@@ -4,18 +4,16 @@ import ast
 import os
 import re
 import sys
-from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from pathlib import Path
-from typing import TYPE_CHECKING, Any, ClassVar, Literal, cast
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import pytest
 from dotenv import dotenv_values
 
 if sys.version_info >= (3, 11):  # pragma: no cover
-    import tomllib
+    pass
 else:  # pragma: no cover
-    import tomli as tomllib
+    pass
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -35,63 +33,72 @@ class Entry:
     interpolate: bool
 
 
-class BasePytestEnvManager(ABC):
-    """Base class for pytest configuration managers tatal."""
+class IniEnvManager:
+    """Manages environment variables from pytest.ini."""
 
     _TEMPLATE_PATTERN: ClassVar[re.Pattern[str]] = re.compile(r"\{%(\w+)%}")
 
     def __init__(self, pytest_config: pytest.Config) -> None:
-        self._pytest_config: pytest.Config = pytest_config
+        self._pytest_config = pytest_config
 
     def _extract_placeholders(self, value: str) -> set[str]:
         """Extract template variables in format {%VAR_NAME%} from a string."""
         return set(self._TEMPLATE_PATTERN.findall(value))
 
     @staticmethod
-    def _parse_raw_entry(raw_entry: Any) -> Entry:
+    def _parse_entry(entry: Any) -> Entry:
         """Convert a raw config entry (string or dict) into an EnvEntry."""
-        if isinstance(raw_entry, str):
-            return Entry(value=raw_entry, interpolate=True)
-        if isinstance(raw_entry, dict):
-            value = raw_entry.get("value")
+        if isinstance(entry, str):
+            return Entry(value=entry, interpolate=True)
+        if isinstance(entry, dict):
+            value = entry.get("value")
             if not isinstance(value, str):
-                raise ValueError("'value' must be a string")
-            interpolate = raw_entry.get("interpolate", True)
+                raise ValueError("argument 'value' in entry must be a 'str'")
+            interpolate = entry.get("interpolate", True)
             if not isinstance(interpolate, bool):
-                raise TypeError("Entry 'interpolate' must be a bool")
+                raise TypeError("Entry 'interpolate' must be a 'bool'")
             return Entry(value=value, interpolate=interpolate)
-        raise TypeError(f"Entry must be a string or dict, got {type(raw_entry).__name__}")
+        raise TypeError(f"Entry must be a 'str' or dict-like, got {type(entry).__name__!r}")
 
     @staticmethod
-    def _parse_metadata(metadata_from_config: Any) -> Metadata:
-        if not metadata_from_config:
+    def _parse_metadata(metadata: str) -> Metadata:
+        if not metadata:
             return Metadata()
-        if not isinstance(metadata_from_config, dict):
-            raise TypeError(f"key 'envx_metadata' must be a dict, got {type(metadata_from_config).__name__}")
+        eval_metadata: dict[str, Any]
+        try:
+            eval_metadata = ast.literal_eval(metadata)
+            if not isinstance(eval_metadata, dict):
+                raise TypeError(f"key 'envx_metadata' must be a 'dict', got {type(eval_metadata).__name__!r}")
+        except (SyntaxError, ValueError) as e:
+            raise type(e)(f"Invalid 'envx_metadata' from config file: {metadata!r}") from e
 
-        load_paths: Any = metadata_from_config.get("paths_to_load", [])
-        interpolate_paths: Any = metadata_from_config.get("paths_to_interpolate", [])
-        override_load: Any = metadata_from_config.get("override_load", True)
-        override_interpolate: Any = metadata_from_config.get("override_interpolate", True)
+        paths_to_load = eval_metadata.get("paths_to_load", [])
+        if not isinstance(paths_to_load, list):
+            raise TypeError("argument 'paths_to_load' of key 'envx_metadata' must be a 'list'")
 
-        if not isinstance(load_paths, list):
-            raise TypeError("argument 'paths_to_load' of key 'envx_metadata' must be a list")
-        if not isinstance(interpolate_paths, list):
-            raise TypeError("argument 'paths_to_interpolate' of key 'envx_metadata' must be a list")
+        paths_to_interpolate = eval_metadata.get("paths_to_interpolate", [])
+        if not isinstance(paths_to_interpolate, list):
+            raise TypeError("argument 'paths_to_interpolate' of key 'envx_metadata' must be a 'list'")
+
+        override_load = eval_metadata.get("override_load", True)
         if not isinstance(override_load, bool):
-            raise TypeError("argument 'override_load' of key 'envx_metadata' must be a bool")
-        if not isinstance(override_interpolate, bool):
-            raise TypeError("argument 'override_interpolate' of key 'envx_metadata' must be a bool")
+            raise TypeError("argument 'override_load' of key 'envx_metadata' must be a 'bool'")
 
-        for path in load_paths:
+        override_interpolate = eval_metadata.get("override_interpolate", True)
+        if not isinstance(override_interpolate, bool):
+            raise TypeError("argument 'override_interpolate' of key 'envx_metadata' must be a 'bool'")
+
+        for path in paths_to_load:
             if not isinstance(path, str):
-                raise TypeError(f"Path in 'paths_to_load' must be a string, got {type(path).__name__}")
-        for path in interpolate_paths:
+                raise TypeError(f"Path in 'paths_to_load' must be a 'str', got {type(path).__name__!r}")
+
+        for path in paths_to_interpolate:
             if not isinstance(path, str):
-                raise TypeError(f"Path in 'paths_to_interpolate' must be a string, got {type(path).__name__}")
+                raise TypeError(f"Path in 'paths_to_interpolate' must be a 'str', got {type(path).__name__!r}")
+
         return Metadata(
-            paths_to_load=load_paths,
-            paths_to_interpolate=interpolate_paths,
+            paths_to_load=paths_to_load,
+            paths_to_interpolate=paths_to_interpolate,
             override_load=override_load,
             override_interpolate=override_interpolate,
         )
@@ -121,11 +128,6 @@ class BasePytestEnvManager(ABC):
                     env_vars = {**file_vars, **env_vars}
         return env_vars
 
-    def _is_valid_inifile(self, filename: Literal["pyproject.toml", "pytest.ini", "tox.ini"]) -> bool:
-        """Check if the pytest config's inifile exists and matches the given filename."""
-        inipath = self._pytest_config.inipath
-        return inipath is not None and inipath.exists() and inipath.name == filename
-
     def _set_env_var(self, key: str, entry: Entry, interpolate_vars: dict[str, str | None]) -> None:
         """Set an environment variable based on the entry and interpolation vars."""
         value: str = (
@@ -135,7 +137,7 @@ class BasePytestEnvManager(ABC):
         )
         os.environ[key] = value
 
-    def _apply_env_vars(self, raw_config_vars: dict[str, Any], metadata: Metadata) -> None:
+    def _apply_env_vars(self, config_vars: dict[str, Any], metadata: Metadata) -> None:
         loaded_vars = (
             self._load_dotenv(metadata.paths_to_load, metadata.override_load) if metadata.paths_to_load else {}
         )
@@ -146,80 +148,31 @@ class BasePytestEnvManager(ABC):
             else {}
         )
 
-        env_vars: dict[str, Any] = loaded_vars | raw_config_vars
+        env_vars: dict[str, Any] = loaded_vars | config_vars
 
         # Set environment variables
-        for key, raw_entry in env_vars.items():  # type: str, Any
+        for key, entry_str in env_vars.items():  # type: str, Any
             os.environ.pop(key, None)  # Clear existing environment variables that will be set
             try:
-                entry: Entry = self._parse_raw_entry(raw_entry=raw_entry)
+                entry: Entry = self._parse_entry(entry=entry_str)
                 self._set_env_var(key=key, entry=entry, interpolate_vars=interpolate_vars)
             except (TypeError, ValueError) as e:
-                raise type(e)(f"Invalid entry for {key}: {e}") from e
-
-    @abstractmethod
-    def setup(self) -> bool:
-        """Load and apply environment configuration."""
-        raise NotImplementedError()
-
-
-class TomlEnvManager(BasePytestEnvManager):
-    """Manages environment variables from pyproject.toml."""
-
-    def __init__(self, pytest_config: pytest.Config) -> None:
-        super().__init__(pytest_config=pytest_config)
-
-    @staticmethod
-    def _load_toml_config(path: Path) -> dict[str, Any]:
-        """Load pytest_envx section from a TOML file."""
-        config = tomllib.loads(path.read_text())
-        return cast(dict[str, Any], config.get("tool", {}).get("pytest_envx", {}))
-
-    def setup(self) -> bool:
-        """Configure environment from pyproject.toml."""
-        if not self._is_valid_inifile("pyproject.toml"):
-            return False
-
-        assert self._pytest_config.inipath is not None  # Type narrowing for mypy
-        toml_config = self._load_toml_config(self._pytest_config.inipath)
-        if not toml_config:
-            return False
-
-        metadata = self._parse_metadata(toml_config.pop("envx_metadata", None))
-        raw_config_vars = toml_config  # We delete metadata from toml_config, now there only config_vars
-        self._apply_env_vars(raw_config_vars=raw_config_vars, metadata=metadata)
-        return True
-
-
-class IniEnvManager(BasePytestEnvManager):
-    """Manages environment variables from pytest.ini."""
-
-    def __init__(self, pytest_config: pytest.Config) -> None:
-        super().__init__(pytest_config=pytest_config)
+                raise type(e)(f"Invalid entry for {key!r}: {e}") from e
 
     def setup(self) -> bool:
         """Configure environment from pytest.ini or tox.ini."""
-        if not (self._is_valid_inifile("pytest.ini") or self._is_valid_inifile("tox.ini")):
-            return False
-
-        metadata_from_inifile: Any = self._pytest_config.getini("envx_metadata")
-        if metadata_from_inifile:
-            try:
-                metadata_from_inifile = ast.literal_eval(metadata_from_inifile)
-            except (SyntaxError, ValueError) as e:
-                raise type(e)(f"Invalid envx_metadata from ini file, {metadata_from_inifile!r}") from e
-
-        metadata = self._parse_metadata(metadata_from_inifile)
+        metadata_str: str = self._pytest_config.getini("envx_metadata")
+        metadata: Metadata = self._parse_metadata(metadata=metadata_str)
 
         env_lines = self._pytest_config.getini("env")
-        raw_config_vars: dict[str, Any] = {}
+        config_vars: dict[str, Any] = {}
         for line in env_lines:
             if "=" not in line:
                 raise ValueError(f"Invalid env line format (missing '='): {line!r}")
-            key, _, raw_entry = line.partition("=")
-            raw_config_vars[key.strip()] = ast.literal_eval(raw_entry.strip())
+            key, _, value = line.partition("=")
+            config_vars[key.strip()] = ast.literal_eval(value.strip())
 
-        self._apply_env_vars(raw_config_vars=raw_config_vars, metadata=metadata)
+        self._apply_env_vars(config_vars=config_vars, metadata=metadata)
         return True
 
 
@@ -241,5 +194,5 @@ def pytest_addoption(parser: pytest.Parser) -> None:
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_load_initial_conftests(early_config: pytest.Config) -> None:
-    TomlEnvManager(pytest_config=early_config).setup()
-    IniEnvManager(pytest_config=early_config).setup()
+    if early_config.inipath is not None and early_config.inipath.exists():
+        IniEnvManager(pytest_config=early_config).setup()

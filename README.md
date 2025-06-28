@@ -5,7 +5,7 @@
 [![PyPI version](https://badge.fury.io/py/pytest-envx.svg)](https://badge.fury.io/py/pytest-envx)
 [![Python versions](https://img.shields.io/pypi/pyversions/pytest-envx.svg)](https://pypi.org/project/pytest-envx/)
 [![codecov](https://codecov.io/gh/eugeneliukindev/pytest-envx/graph/badge.svg?token=JRCQR1PFZ0)](https://codecov.io/gh/eugeneliukindev/pytest-envx)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE.txt)
 
 <details>
 <summary><b>🌍 Select Language</b></summary>
@@ -52,8 +52,10 @@ By default, `pytest` prioritizes `pytest.ini` ⚙️
   </tr>
   <tr>
     <td>
-      <pre lang="toml"><code>[tool.pytest_envx]
-HELLO = "WORLD"</code></pre>
+      <pre lang="toml"><code>[tool.pytest.ini_options]
+env = [
+    "HELLO='WORLD'"
+]</code></pre>
     </td>
     <td>
       <pre lang="ini"><code>[pytest]
@@ -104,9 +106,11 @@ NAME=BOB
   <tr>
     <td>
       <pre lang="toml">
-[tool.pytest_envx]
+[tool.pytest.ini_options]
 envx_metadata = { paths_to_load = [".env-template", ".env"], override_load = true }
-GREETING = "Hello"
+env = [
+    "GREETING='Hello'"
+]
       </pre>
     </td>
     <td>
@@ -163,7 +167,7 @@ LEVEL=DEV
   <tr>
     <td>
       <pre lang="toml">
-[tool.pytest_envx]
+[tool.pytest.ini_options]
 envx_metadata = { paths_to_load = [".env.default", ".env.dev"], override_load = false }
       </pre>
     </td>
@@ -212,11 +216,13 @@ PORT=5432
   <tr>
     <td>
       <pre lang="toml">
-[tool.pytest_envx]
+[tool.pytest.ini_options]
 envx_metadata = { paths_to_interpolate = [".env"] }
-DB_URL_WITH_INTERPOLATION = "postgresql://{%USER%}:{%PASS%}@{%HOST%}:{%PORT%}/app"
-WITHOUT_INTERPOLATION = { value = "{%USER%}", interpolate = false }
-NOT_FOUND = "{%NOT_FOUND%}"
+env = [
+    "DB_URL_WITH_INTERPOLATION='postgresql://{%USER%}:{%PASS%}@{%HOST%}:{%PORT%}/app'",
+    "WITHOUT_INTERPOLATION={'value': '{%USER%}', 'interpolate': False}",
+    "NOT_FOUND='{%NOT_FOUND%}'"
+]
       </pre>
     </td>
     <td>
