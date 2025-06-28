@@ -219,8 +219,8 @@ PORT=5432
 [tool.pytest.ini_options]
 envx_metadata = { paths_to_interpolate = [".env"] }
 env = [
-    "DB_URL_WITH_INTERPOLATION='postgresql://{%USER%}:{%PASS%}@{%HOST%}:{%PORT%}/app'"
-    "WITHOUT_INTERPOLATION={'value': '{%USER%}', 'interpolate': False}
+    "DB_URL_WITH_INTERPOLATION='postgresql://{%USER%}:{%PASS%}@{%HOST%}:{%PORT%}/app'",
+    "WITHOUT_INTERPOLATION={'value': '{%USER%}', 'interpolate': False}",
     "NOT_FOUND='{%NOT_FOUND%}'"
 ]
       </pre>
