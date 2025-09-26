@@ -47,9 +47,3 @@ repos:
       - id: ruff-check
         args: [--fix]
       - id: ruff-format
-
-  - repo: https://github.com/pdm-project/pdm
-    rev: 2.21.0
-    hooks:
-      - id: pdm-lock-check
-        name: "Check: pdm.lock consistency"
