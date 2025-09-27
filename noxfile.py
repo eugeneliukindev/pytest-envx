@@ -22,7 +22,7 @@ PYTHON_VERSIONS = nox.project.python_versions(PYPROJECT_TOML)
 PACKAGE = "pytest_envx"
 
 TEST_DEPENDENCIES = nox.project.dependency_groups(PYPROJECT_TOML, "test")
-TYPE_DEPENDENCIES = nox.project.dependency_groups(PYPROJECT_TOML, "type_hints")
+TYPE_HINTS_DEPENDENCIES = nox.project.dependency_groups(PYPROJECT_TOML, "type_hints")
 LINT_DEPENDENCIES = nox.project.dependency_groups(PYPROJECT_TOML, "lint")
 PKG_META_DEPENDENCIES = nox.project.dependency_groups(PYPROJECT_TOML, "pkg-meta")
 
@@ -52,6 +52,7 @@ class EnvConfig:
 def tests(session: nox.Session) -> None:
     env_location = Path(session.virtualenv.location)
     config = EnvConfig.from_env(env_location)
+    session.log("EnvConfig: %s", config)
 
     session.env["COVERAGE_FILE"] = config.coverage_file
 
@@ -91,7 +92,7 @@ def lint(session: nox.Session) -> None:
 
 @nox.session  # type: ignore[misc]
 def type_hints(session: nox.Session) -> None:
-    session.install(*TYPE_DEPENDENCIES)
+    session.install(*TYPE_HINTS_DEPENDENCIES)
     session.run("mypy", "--config", PYPROJECT_TOML_PATH, PYTEST_ENVX_DIR, TESTS_DIR, NOXFILE_PATH)
 
 
