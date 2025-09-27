@@ -7,7 +7,7 @@ on:
     - cron: "0 8 * * *"
 
 concurrency:
-  group: check-${{ github.ref }}-${{ github.event_name }}-${{ matrix.python-version || matrix.check || 'default' }}
+  group: check-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -21,12 +21,12 @@ jobs:
         python-version: [ "3.9", "3.10", "3.11", "3.12", "3.13" ]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
           cache-dependency-glob: "pyproject.toml"
@@ -38,16 +38,14 @@ jobs:
       - name: Install nox
         run: uv tool install --python ${{ matrix.python-version }} nox
 
-      - name: Run nox tests
+      - name: Run nox
         run: nox -v -s tests-${{ matrix.python-version }}
         env:
           PYTEST_ADDOPTS: "-vv --durations=20"
           DEBUG: "1"
-        continue-on-error: false
 
       - name: Upload coverage to Codecov
-        if: success()
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: eugeneliukindev/pytest-envx
@@ -63,12 +61,12 @@ jobs:
         check: [ "lint", "type_hints", "pkg_meta" ]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
           cache-dependency-glob: "pyproject.toml"
@@ -78,10 +76,7 @@ jobs:
         run: uv python install 3.13
 
       - name: Install nox
-        run: uv tool install --python 3.13 nox
-
-      - name: List nox sessions
-        run: nox --list
+        run: uv tool install nox
 
       - name: Run nox ${{ matrix.check }}
         run: nox -v -s ${{ matrix.check }}
