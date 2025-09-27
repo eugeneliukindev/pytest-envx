@@ -140,9 +140,6 @@ show_contexts = true
 [tool.coverage.path]
 source = [
     "src",
-    ".tox*/*/lib/python*/site-packages",
-    ".tox*/pypy*/site-packages",
-    ".tox*\\*\\Lib\\site-packages",
     "*/src",
     "*\\src",
 ]
@@ -156,81 +153,3 @@ omit = [
     "src/pytest_envx/__version__.py"
 ]
 show_missing = true
-
-# ==============================
-# Tox
-# ==============================
-[tool.tox]
-requires = [
-    "tox>=4.27.0",
-    "tox-uv>=1.26.1",
-]
-env_list = [
-    "3.13",
-    "3.12",
-    "3.11",
-    "3.10",
-    "3.9",
-    "lint",
-    "type_hints",
-    "pkg-meta",
-]
-skip_missing_interpreters = true
-
-[tool.tox.env_run_base]
-description = "Execute pytest tests for the specified Python environment"
-dependency_groups = ["test"]
-set_env.COVERAGE_FILE = { replace = "env", name = "COVERAGE_FILE", default = "{toxworkdir}{/}.coverage.{env_name}" }
-set_env.COVERAGE_XML = { replace = "env", name = "COVERAGE_XML", default = "{env_tmp_dir}{/}coverage.{env_name}.xml" }
-package = "wheel"
-wheel_build_env = ".pkg"
-pass_env = ["PYTEST_*", "COVERAGE_*"]
-commands = [
-    [
-        "pytest", { replace = "posargs", extend = true, default = [
-        "-p", "no:pytest_envx",
-        "-v",
-        "-n", { replace = "env", name = "PYTEST_XDIST_AUTO_NUM_WORKERS", default = "auto" },
-        "--junitxml", "{toxworkdir}{/}junit.{env_name}.xml",
-        "--no-cov-on-fail",
-        "--cov", "{env_site_packages_dir}{/}pytest_envx",
-        "--cov", "{tox_root}{/}tests",
-        "--cov-config", "{tox_root}{/}pyproject.toml",
-        "--cov-context", "test",
-        "--cov-report", "term-missing",
-        "--cov-report", "html:{env_tmp_dir}{/}htmlcov",
-        "--cov-report", "xml:{env:COVERAGE_XML}"
-    ] }
-    ],
-    [
-        "diff-cover", "--compare-branch", "{env:DIFF_AGAINST:origin/master}", "{env:COVERAGE_XML}"
-    ]
-]
-
-
-[tool.tox.env.lint]
-description = "Format code according to style guidelines and report unfixable issues"
-skip_install = true
-dependency_groups = ["lint"]
-pass_env = [{ replace = "ref", of = ["env_run_base", "pass_env"], extend = true }, "PROGRAMDATA", "DISABLE_PRE_COMMIT_UV_PATCH"]
-commands = [
-    ["pre-commit", "run", "--all-files", "--show-diff-on-failure", { replace = "posargs", extend = true }]
-]
-
-[tool.tox.env.type_hints]
-description = "Perform static type checking on the code base"
-skip_install = true
-dependency_groups = ["type"]
-commands = [
-    ["mypy", "src{/}pytest_envx", "tests"]
-]
-
-[tool.tox.env.pkg-meta]
-description = "Validate package metadata and build artifacts"
-skip_install = true
-dependency_groups = ["pkg_meta"]
-commands = [
-    ["uv", "build", "--sdist", "--wheel", "--out-dir", "{env_tmp_dir}", "."],
-    ["twine", "check", "{env_tmp_dir}{/}*"],
-    ["check-wheel-contents", "--no-config", "{env_tmp_dir}"]
-]
