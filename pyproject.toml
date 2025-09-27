@@ -44,7 +44,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     { include-group = "test" },
-    { include-group = "type" },
+    { include-group = "type_hints" },
     { include-group = "lint" },
 ]
 test = [
