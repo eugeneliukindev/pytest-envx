@@ -36,7 +36,7 @@ jobs:
         run: uv python install ${{ matrix.python-version }}
 
       - name: Install nox
-        run: uv tool install --python ${{ matrix.python-version }} nox
+        run: uv tool install --python 3.13 nox
 
       - name: Run nox
         run: nox -v -s tests-${{ matrix.python-version }}
