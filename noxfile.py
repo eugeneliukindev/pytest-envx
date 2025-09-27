@@ -22,7 +22,7 @@ PYTHON_VERSIONS = nox.project.python_versions(PYPROJECT_TOML)
 PACKAGE = "pytest_envx"
 
 TEST_DEPENDENCIES = nox.project.dependency_groups(PYPROJECT_TOML, "test")
-TYPE_DEPENDENCIES = nox.project.dependency_groups(PYPROJECT_TOML, "type")
+TYPE_DEPENDENCIES = nox.project.dependency_groups(PYPROJECT_TOML, "type_hints")
 LINT_DEPENDENCIES = nox.project.dependency_groups(PYPROJECT_TOML, "lint")
 PKG_META_DEPENDENCIES = nox.project.dependency_groups(PYPROJECT_TOML, "pkg-meta")
 

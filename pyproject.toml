@@ -55,7 +55,7 @@ test = [
     "diff-cover>=9.4.1",
     "covdefaults>=2.3.0"
 ]
-type = [
+type_hints = [
     "mypy>=1.16.1",
     "pytest-stub>=1.1.0"
 ]
