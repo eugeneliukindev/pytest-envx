@@ -13,6 +13,8 @@ nox.options.default_venv_backend = "uv"
 ROOT = Path(__file__).parent
 PYPROJECT_TOML_PATH = ROOT / "pyproject.toml"
 TESTS_DIR = ROOT / "tests"
+PYTEST_ENVX_DIR = ROOT / "src" / "pytest_envx"
+NOXFILE_PATH = ROOT / "noxfile.py"
 
 PYPROJECT_TOML = nox.project.load_toml("pyproject.toml")
 PYTHON_VERSIONS = nox.project.python_versions(PYPROJECT_TOML)
@@ -46,7 +48,7 @@ class EnvConfig:
         )
 
 
-@nox.session(python=PYTHON_VERSIONS)
+@nox.session(python=PYTHON_VERSIONS)  # type: ignore[misc]
 def tests(session: nox.Session) -> None:
     env_location = Path(session.virtualenv.location)
     config = EnvConfig.from_env(env_location)
@@ -81,19 +83,19 @@ def tests(session: nox.Session) -> None:
     # fmt: on
 
 
-@nox.session()
+@nox.session  # type: ignore[misc]
 def lint(session: nox.Session) -> None:
     session.install(*LINT_DEPENDENCIES)
     session.run("pre-commit", "run", "--all-files", "--show-diff-on-failure")
 
 
-@nox.session()
+@nox.session  # type: ignore[misc]
 def type_hints(session: nox.Session) -> None:
     session.install(*TYPE_DEPENDENCIES)
-    session.run("mypy", "--config", PYPROJECT_TOML_PATH, ROOT / "src" / "pytest_envx")
+    session.run("mypy", "--config", PYPROJECT_TOML_PATH, PYTEST_ENVX_DIR, TESTS_DIR, NOXFILE_PATH)
 
 
-@nox.session()
+@nox.session  # type: ignore[misc]
 def pkg_meta(session: nox.Session) -> None:
     session.install(*PKG_META_DEPENDENCIES)
 
