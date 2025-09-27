@@ -7,7 +7,7 @@ on:
     - cron: "0 8 * * *"
 
 concurrency:
-  group: check-${{ github.ref }}
+  group: check-${{ github.ref }}-${{ github.event_name }}-${{ matrix.python-version || matrix.check || 'default' }}
   cancel-in-progress: true
 
 jobs:
@@ -21,7 +21,7 @@ jobs:
         python-version: [ "3.9", "3.10", "3.11", "3.12", "3.13" ]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -36,16 +36,18 @@ jobs:
         run: uv python install ${{ matrix.python-version }}
 
       - name: Install nox
-        run: uv tool install --python 3.13 nox
+        run: uv tool install --python ${{ matrix.python-version }} nox
 
-      - name: Run nox
+      - name: Run nox tests
         run: nox -v -s tests-${{ matrix.python-version }}
         env:
           PYTEST_ADDOPTS: "-vv --durations=20"
           DEBUG: "1"
+        continue-on-error: false
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        if: success()
+        uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: eugeneliukindev/pytest-envx
@@ -61,12 +63,12 @@ jobs:
         check: [ "lint", "type_hints", "pkg_meta" ]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v3
         with:
           enable-cache: true
           cache-dependency-glob: "pyproject.toml"
@@ -77,6 +79,9 @@ jobs:
 
       - name: Install nox
         run: uv tool install --python 3.13 nox
+
+      - name: List nox sessions
+        run: nox --list
 
       - name: Run nox ${{ matrix.check }}
         run: nox -v -s ${{ matrix.check }}
