@@ -7,7 +7,7 @@ on:
     - cron: "0 8 * * *"
 
 concurrency:
-  group: check-${{ github.ref }}
+  group: check-${{ github.ref }}-${{ github.event_name }}-${{ matrix.check || 'default' }}
   cancel-in-progress: true
 
 jobs:
@@ -42,7 +42,7 @@ jobs:
         run: nox -v -s tests-${{ matrix.python-version }}
         env:
           PYTEST_ADDOPTS: "-vv --durations=20"
-          DEBUG: "1"  # Включаем отладочные логи для CI
+          DEBUG: "1"
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
