@@ -27,7 +27,7 @@ LINT_DEPENDENCIES = nox.project.dependency_groups(PYPROJECT_TOML, "lint")
 PKG_META_DEPENDENCIES = nox.project.dependency_groups(PYPROJECT_TOML, "pkg-meta")
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class EnvConfig:
     junit_xml: str
     coverage_xml: str
