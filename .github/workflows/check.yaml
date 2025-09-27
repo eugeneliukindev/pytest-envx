@@ -1,4 +1,5 @@
 name: Check
+
 on:
   workflow_dispatch:
   pull_request:
@@ -13,39 +14,35 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      COVERAGE_XML: .tox/coverage.xml
+      COVERAGE_XML: coverage-${{ matrix.python-version }}.xml
     strategy:
       fail-fast: false
       matrix:
-        python_versions:
-          - "3.9"
-          - "3.10"
-          - "3.11"
-          - "3.12"
-          - "3.13"
+        python-version: [ "3.9", "3.10", "3.11", "3.12", "3.13" ]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      - name: Install the latest version of uv
+      - name: Install uv
         uses: astral-sh/setup-uv@v6
         with:
-          enable-cache: false
+          enable-cache: true
           cache-dependency-glob: "pyproject.toml"
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install Python interpreter
-        run: uv python install --python-preference only-managed ${{ matrix.python_versions }}
+      - name: Install Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
 
-      - name: Install tox
-        run: uv tool install --python-preference only-managed --python 3.13 tox --with tox-uv
+      - name: Install nox
+        run: uv tool install --python 3.13 nox
 
-      - name: Run tox
-        run: tox run -vv --skip-missing-interpreters false -e ${{ matrix.python_versions }}
+      - name: Run nox
+        run: nox -v -s tests-${{ matrix.python-version }}
         env:
           PYTEST_ADDOPTS: "-vv --durations=20"
+          DEBUG: "1"
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
@@ -61,7 +58,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        check: [ "lint", "type_hints", "pkg-meta" ]
+        check: [ "lint", "type_hints", "pkg_meta" ]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -75,8 +72,13 @@ jobs:
           cache-dependency-glob: "pyproject.toml"
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install tox
-        run: uv tool install --python-preference only-managed --python 3.13 tox --with tox-uv
+      - name: Install Python 3.13
+        run: uv python install 3.13
 
-      - name: Run lint checks
-        run: tox run --skip-pkg-install -e ${{ matrix.check }}
+      - name: Install nox
+        run: uv tool install --python 3.13 nox
+
+      - name: Run nox ${{ matrix.check }}
+        run: nox -v -s ${{ matrix.check }}
+        env:
+          DEBUG: "1"
