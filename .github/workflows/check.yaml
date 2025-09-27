@@ -7,7 +7,7 @@ on:
     - cron: "0 8 * * *"
 
 concurrency:
-  group: check-${{ github.ref }}-${{ github.event_name }}-${{ matrix.check || 'default' }}
+  group: check-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
