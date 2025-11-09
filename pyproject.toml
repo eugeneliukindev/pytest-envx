@@ -84,12 +84,6 @@ pytest_envx = "pytest_envx.plugin"
 [tool.pytest]
 testpaths = ["tests"]
 
-
-[tool.pytest.ini_options]
-testpaths = [
-    "tests",
-]
-
 # ==============================
 # PDM
 # ==============================
