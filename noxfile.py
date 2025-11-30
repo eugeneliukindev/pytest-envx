@@ -48,7 +48,7 @@ class EnvConfig:
         )
 
 
-@nox.session(python=PYTHON_VERSIONS)  # type: ignore[misc]
+@nox.session(python=PYTHON_VERSIONS)  # type: ignore[untyped-decorator]
 def tests(session: nox.Session) -> None:
     env_location = Path(session.virtualenv.location)
     config = EnvConfig.from_env(env_location)
@@ -84,19 +84,19 @@ def tests(session: nox.Session) -> None:
     # fmt: on
 
 
-@nox.session  # type: ignore[misc]
+@nox.session  # type: ignore[untyped-decorator]
 def lint(session: nox.Session) -> None:
     session.install(*LINT_DEPENDENCIES)
     session.run("pre-commit", "run", "--all-files", "--show-diff-on-failure")
 
 
-@nox.session  # type: ignore[misc]
+@nox.session  # type: ignore[untyped-decorator]
 def type_hints(session: nox.Session) -> None:
     session.install(*TYPE_HINTS_DEPENDENCIES)
     session.run("mypy", "--config", PYPROJECT_TOML_PATH, PYTEST_ENVX_DIR, TESTS_DIR, NOXFILE_PATH)
 
 
-@nox.session  # type: ignore[misc]
+@nox.session  # type: ignore[untyped-decorator]
 def pkg_meta(session: nox.Session) -> None:
     session.install(*PKG_META_DEPENDENCIES)
 
