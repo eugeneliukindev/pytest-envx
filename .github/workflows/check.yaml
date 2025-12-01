@@ -21,7 +21,7 @@ jobs:
         python-version: [ "3.9", "3.10", "3.11", "3.12", "3.13" ]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -61,7 +61,7 @@ jobs:
         check: [ "lint", "type_hints", "pkg_meta" ]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
