@@ -60,6 +60,7 @@ env =
 ```python
 import os
 
+
 def test_env_var():
     assert os.getenv("HELLO") == "WORLD"
 ```
@@ -121,6 +122,7 @@ env =
 ```python
 import os
 
+
 def test_env_loading():
     assert os.getenv("NAME") == "BOB"
     assert os.getenv("LASTNAME") == "BAILER"
@@ -176,6 +178,7 @@ envx_metadata = {"paths_to_load": [".env.default", ".env.dev"], "override_load":
 
 ```python
 import os
+
 
 def test_env_priority():
     assert os.getenv("MODE") == "default"
@@ -235,14 +238,15 @@ env =
 ```python
 import os
 
+
 def test_interpolated_value():
     assert os.getenv("DB_URL_WITH_INTERPOLATION") == "postgresql://john:secret@db.local:5432/app"
     assert os.getenv("WITHOUT_INTERPOLATION") == "{%USER%}"
     assert os.getenv("NOT_FOUND") == "{%NOT_FOUND%}"
-    assert os.getenv("USER") !=  "john"
-    assert os.getenv("PASS") !=  "secret"
-    assert os.getenv("HOST") !=  "db.local"
-    assert os.getenv("PORT") !=  "5432"
+    assert os.getenv("USER") != "john"
+    assert os.getenv("PASS") != "secret"
+    assert os.getenv("HOST") != "db.local"
+    assert os.getenv("PORT") != "5432"
 ```
 
 ---
